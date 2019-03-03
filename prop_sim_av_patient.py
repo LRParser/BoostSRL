@@ -1,7 +1,8 @@
 import pandas as pd
 import re
 
-df = pd.read_csv("sim_av_patient.csv")
+# Randomly shuffle all the patients
+df = pd.read_csv("sim_av_patient.csv").sample(frac=1).reset_index(drop=True)
 
 tumour = pd.read_csv("sim_av_tumour.csv")
 tumour["AGE"] = pd.cut(tumour["AGE"],10,labels=[str(i) for i in range(10)])
@@ -12,12 +13,13 @@ sact_tumour = pd.read_csv("sim_sact_tumour.csv")
 
 
 sact_regimen = pd.read_csv("sim_sact_regimen.csv",encoding="latin1")
+sact_cycle = pd.read_csv("sim_sact_cycle.csv")
 sact_drug_detail = pd.read_csv("sim_sact_drug_detail.csv")
 sact_outcome = pd.read_csv("sim_sact_outcome.csv")
 
 num_pos = 0
 num_neg = 0
-num_exs = 100
+num_exs = 5000
 pat_cols = None
 tum_cols = None
 
@@ -90,6 +92,38 @@ with open("train/train_facts.txt","w") as facts:
 
                                     facts.write(col.lower() + "(mergedregimenid" + str(mrid) + "," + \
                                                 val + ").\n")
+
+
+                                sact_cycles = sact_cycle[sact_cycle["MERGED_REGIMEN_ID"] == mrid]
+                                for idx, mcrow in sact_cycles.iterrows():
+                                    mcid = mcrow["MERGED_CYCLE_ID"]
+                                    facts.write(
+                                        "has_mergedcycle(mergedregimenid" + str(mrid) + "," + "mergedcycleid" + str(
+                                            mcid) + ").\n")
+                                    mcyc_cols = [x for x in sact_cycles.columns.values if
+                                                 x not in ["MERGED_TUMOUR_ID", "MERGED_CYCLE_ID"
+                                                           "MERGED_REGIMEN_ID"] and x not in pat_cols and x not in tum_cols and x not in mtum_cols and x not in mreg_cols and "DATE" not in x]
+                                    for col in mcyc_cols:
+                                        val = re.sub(r'\W+', 'AN', str(mcrow[col]))
+
+                                        facts.write(col.lower() + "(mergedcycleid" + str(mcid) + "," + \
+                                                    val + ").\n")
+
+                                    sact_drug_details = sact_drug_detail[sact_drug_detail["MERGED_CYCLE_ID"] == mcid]
+                                    for idx, mdrow in sact_drug_details.iterrows():
+                                        mddid = mdrow["MERGED_DRUG_DETAIL_ID"]
+                                        facts.write(
+                                            "has_mergeddrugdetail(mergedcycleid" + str(mcid) + "," + "mergeddrugdetailid" + str(
+                                                mddid) + ").\n")
+                                        mdd_cols = [x for x in sact_drug_details.columns.values if
+                                                     x not in ["MERGED_TUMOUR_ID", "MERGED_CYCLE_ID", "MERGED_DRUG_DETAIL_ID",
+                                                                                   "MERGED_REGIMEN_ID"] and x not in pat_cols and x not in tum_cols and x not in mtum_cols and x not in mreg_cols and "DATE" not in x]
+                                        for col in mdd_cols:
+                                            val = re.sub(r'\W+', 'AN', str(mdrow[col]))
+
+                                            facts.write(col.lower() + "(mergeddrugdetailid" + str(mddid) + "," + \
+                                                        val + ").\n")
+
 
                                 sact_outcomes = sact_outcome[sact_outcome["MERGED_REGIMEN_ID"] == mrid]
                                 for idx, orow in sact_outcomes.iterrows():
@@ -179,6 +213,38 @@ with open("test/test_facts.txt","w") as facts:
                                     facts.write(col.lower() + "(mergedregimenid" + str(mrid) + "," + \
                                                 val + ").\n")
 
+
+                                sact_cycles = sact_cycle[sact_cycle["MERGED_REGIMEN_ID"] == mrid]
+                                for idx, mcrow in sact_cycles.iterrows():
+                                    mcid = mcrow["MERGED_CYCLE_ID"]
+                                    facts.write(
+                                        "has_mergedcycle(mergedregimenid" + str(mrid) + "," + "mergedcycleid" + str(
+                                            mcid) + ").\n")
+                                    mcyc_cols = [x for x in sact_cycles.columns.values if
+                                                 x not in ["MERGED_TUMOUR_ID", "MERGED_CYCLE_ID"
+                                                           "MERGED_REGIMEN_ID"] and x not in pat_cols and x not in tum_cols and x not in mtum_cols and x not in mreg_cols and "DATE" not in x]
+                                    for col in mcyc_cols:
+                                        val = re.sub(r'\W+', 'AN', str(mcrow[col]))
+
+                                        facts.write(col.lower() + "(mergedcycleid" + str(mcid) + "," + \
+                                                    val + ").\n")
+
+                                    sact_drug_details = sact_drug_detail[sact_drug_detail["MERGED_CYCLE_ID"] == mcid]
+                                    for idx, mdrow in sact_drug_details.iterrows():
+                                        mddid = mdrow["MERGED_DRUG_DETAIL_ID"]
+                                        facts.write(
+                                            "has_mergeddrugdetail(mergedcycleid" + str(mcid) + "," + "mergeddrugdetailid" + str(
+                                                mddid) + ").\n")
+                                        mdd_cols = [x for x in sact_drug_details.columns.values if
+                                                     x not in ["MERGED_TUMOUR_ID", "MERGED_CYCLE_ID", "MERGED_DRUG_DETAIL_ID",
+                                                                                   "MERGED_REGIMEN_ID"] and x not in pat_cols and x not in tum_cols and x not in mtum_cols and x not in mreg_cols and "DATE" not in x]
+                                        for col in mdd_cols:
+                                            val = re.sub(r'\W+', 'AN', str(mdrow[col]))
+
+                                            facts.write(col.lower() + "(mergeddrugdetailid" + str(mddid) + "," + \
+                                                        val + ").\n")
+
+
                                 sact_outcomes = sact_outcome[sact_outcome["MERGED_REGIMEN_ID"] == mrid]
                                 for idx, orow in sact_outcomes.iterrows():
                                     oid = orow["MERGED_OUTCOME_ID"]
@@ -205,7 +271,7 @@ with open("test/test_bk.txt","w") as f:
 
 with open("simulacrum_bk.txt","w") as f:
     f.write("setParam: maxTreeDepth = 100.\n")
-    f.write("setParam: nodeSize = 4.\n")
+    f.write("setParam: nodeSize = 5.\n")
     #f.write("setParam: numOfClauses = 4).\n")
     #f.write("setParam: numOfClauses = 4).\n")
     #setParam: minLCTrees = 5;
@@ -228,6 +294,16 @@ with open("simulacrum_bk.txt","w") as f:
         f.write("mode: " + col.lower() + "(+mergedregimenid,#var" + col.lower() + ").\n")
     f.write("mode: has_mergedregimen(+mergedtumourid,-mergedregimenid).\n")
 
+
+    f.write("bridger: has_mergedcycle/2.\n")
+    for col in mcyc_cols:
+        f.write("mode: " + col.lower() + "(+mergedcycleid,#var" + col.lower() + ").\n")
+    f.write("mode: has_mergedcycle(+mergedregimenid,-mergedcycleid).\n")
+
+    f.write("bridger: has_mergeddrugdetail/2.\n")
+    for col in mdd_cols:
+        f.write("mode: " + col.lower() + "(+mergeddrugdetailid,#var" + col.lower() + ").\n")
+    f.write("mode: has_mergeddrugdetail(+mergedcycleid,-mergeddrugdetailid).\n")
 
     f.write("bridger: has_mergedoutcome/2.\n")
     for col in mout_cols:
